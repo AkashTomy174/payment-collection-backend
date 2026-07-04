@@ -86,10 +86,13 @@ jobs:
             if [ ! -d "$APP_DIR/.git" ]; then
               sudo mkdir -p "$APP_DIR"
               sudo chown "$USER":"$USER" "$APP_DIR"
-              git clone --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
+              cd "$APP_DIR"
+              git init
+              git remote add origin "$REPO_URL" || git remote set-url origin "$REPO_URL"
+            else
+              cd "$APP_DIR"
             fi
 
-            cd "$APP_DIR"
             git fetch origin "$BRANCH"
             git reset --hard "origin/$BRANCH"
 
