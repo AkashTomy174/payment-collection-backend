@@ -1,0 +1,9 @@
+# System/runtime requirements for the backend host.
+# This project is Node.js/TypeScript, so Python venv is not used.
+nodejs>=20
+npm>=10
+postgresql>=14
+nginx
+pm2
+git
+
