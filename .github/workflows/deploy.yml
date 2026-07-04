@@ -31,6 +31,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    environment: production
     steps:
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
@@ -51,10 +52,26 @@ jobs:
             set -euo pipefail
             : "${APP_DIR:=/var/www/payment-backend}"
             : "${PORT:=3000}"
+            : "${CORS_ORIGIN:=*}"
+
+            if [ -z "${REPO_URL:-}" ]; then
+              echo "BACKEND_REPO_URL secret is required"
+              exit 1
+            fi
+
+            if [ -z "${DATABASE_URL:-}" ] || [ -z "${JWT_SECRET:-}" ]; then
+              echo "DATABASE_URL and JWT_SECRET secrets are required"
+              exit 1
+            fi
 
             if ! command -v node >/dev/null 2>&1; then
               curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
               sudo apt-get install -y nodejs
+            fi
+
+            if ! command -v psql >/dev/null 2>&1; then
+              sudo apt-get update
+              sudo apt-get install -y postgresql-client
             fi
 
             if ! command -v pm2 >/dev/null 2>&1; then
@@ -76,19 +93,30 @@ jobs:
             git fetch origin "$BRANCH"
             git reset --hard "origin/$BRANCH"
 
-            cat > .env <<EOF
-            PORT=$PORT
-            NODE_ENV=production
-            DATABASE_URL=$DATABASE_URL
-            USE_MEMORY_DB=false
-            JWT_SECRET=$JWT_SECRET
-            CORS_ORIGIN=$CORS_ORIGIN
-            EOF
+            {
+              printf 'PORT=%s\n' "$PORT"
+              printf 'NODE_ENV=production\n'
+              printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
+              printf 'USE_MEMORY_DB=false\n'
+              printf 'JWT_SECRET=%s\n' "$JWT_SECRET"
+              printf 'CORS_ORIGIN=%s\n' "$CORS_ORIGIN"
+            } > .env
+            chmod 600 .env
 
             npm ci
             npm run build
+            set -a
+            . ./.env
+            set +a
             npm run migrate
             npm run seed
-            pm2 reload ecosystem.config.cjs --env production || pm2 start ecosystem.config.cjs --env production
+            npm prune --omit=dev
+            pm2 reload ecosystem.config.cjs --env production --update-env || pm2 start ecosystem.config.cjs --env production
             pm2 save
-
+            for attempt in 1 2 3 4 5; do
+              if curl --fail --silent --show-error "http://127.0.0.1:$PORT/health"; then
+                exit 0
+              fi
+              sleep 2
+            done
+            exit 1
