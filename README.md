@@ -28,6 +28,12 @@ npm run dev
 
 ## API
 
+Production API:
+
+```bash
+https://loan-api.akashtomy.com
+```
+
 Health check:
 
 ```bash
@@ -64,6 +70,24 @@ Payment history:
 GET /payments/AC10293847?page=1&limit=10&sort=payment_date&order=desc
 ```
 
+## Seed Data
+
+The seed script creates three demo loan accounts:
+
+```text
+AC10293847
+AC20485611
+AC30991245
+```
+
+It also creates a demo user:
+
+```text
+Email: demo@example.com
+Password: password123
+Linked account: AC10293847
+```
+
 ## Deployment Notes
 
 Build and run on EC2:
@@ -77,4 +101,10 @@ pm2 save
 
 Place production environment variables in `/var/www/payment-backend/.env`, not in git.
 
-Nginx should reverse proxy `https://api.yourdomain.com` to `localhost:3000`.
+Nginx should reverse proxy `https://loan-api.akashtomy.com` to `localhost:3000`.
+
+To create or verify the production Postgres database from the server `.env`, run:
+
+```bash
+APP_DIR=/var/www/payment-backend ./scripts/setup-production-db.sh
+```
