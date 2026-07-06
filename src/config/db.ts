@@ -33,10 +33,11 @@ type MemoryPayment = {
 
 type MemoryUser = {
   id: number;
-  customer_id: number;
+  customer_id: number | null;
   name: string;
   email: string;
   password_hash: string;
+  role: "customer" | "admin";
   created_at: string;
 };
 
@@ -85,6 +86,16 @@ const users: MemoryUser[] = [
     name: "Demo Customer",
     email: "demo@example.com",
     password_hash: "$2a$10$RKZhCGtSxFGq3Nc9gHgQ8OraG9DGvtD.6rm6pDtDXj2nkCpJETBrq",
+    role: "customer",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 2,
+    customer_id: null,
+    name: "Admin User",
+    email: "admin@example.com",
+    password_hash: "$2a$10$RKZhCGtSxFGq3Nc9gHgQ8OraG9DGvtD.6rm6pDtDXj2nkCpJETBrq",
+    role: "admin",
     created_at: new Date().toISOString(),
   },
 ];
@@ -183,6 +194,7 @@ function createMemoryDb(): Queryable {
           name: String(params[1]),
           email: String(params[2]),
           password_hash: String(params[3]),
+          role: "customer",
           created_at: new Date().toISOString(),
         };
         users.push(user);

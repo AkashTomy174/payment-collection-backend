@@ -6,10 +6,10 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "migrate": "psql \"$DATABASE_URL\" -f src/migrations/001_init.sql",
+    "migrate": "psql \"$DATABASE_URL\" -f src/migrations/001_init.sql && psql \"$DATABASE_URL\" -f src/migrations/003_add_admin_role.sql",
     "seed": "psql \"$DATABASE_URL\" -f src/migrations/002_seed.sql",
     "lint": "tsc --noEmit",
-    "test": "node --test"
+    "test": "tsx --test"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

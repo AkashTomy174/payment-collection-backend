@@ -14,3 +14,14 @@ INSERT INTO users (customer_id, name, email, password_hash)
 SELECT id, 'Demo Customer', 'demo@example.com', '$2a$10$RKZhCGtSxFGq3Nc9gHgQ8OraG9DGvtD.6rm6pDtDXj2nkCpJETBrq'
 FROM customers WHERE account_number = 'AC10293847'
 ON CONFLICT (email) DO NOTHING;
+
+-- Rotate this password before any real deployment; it is only a local placeholder.
+INSERT INTO users (customer_id, name, email, password_hash, role)
+VALUES (
+  NULL,
+  'Admin User',
+  'admin@example.com',
+  '$2a$10$RKZhCGtSxFGq3Nc9gHgQ8OraG9DGvtD.6rm6pDtDXj2nkCpJETBrq',
+  'admin'
+)
+ON CONFLICT (email) DO NOTHING;

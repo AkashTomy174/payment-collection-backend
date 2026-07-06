@@ -46,6 +46,14 @@ List customers:
 GET /customers?page=1&limit=20&sort=account_number&order=asc
 ```
 
+List all customers:
+
+```bash
+GET /customers/all?page=1&limit=20&sort=account_number&order=asc
+```
+
+This endpoint requires an admin-role account. Regular customer accounts receive a `403` response if they call it.
+
 Get one customer:
 
 ```bash
@@ -87,6 +95,16 @@ Email: demo@example.com
 Password: password123
 Linked account: AC10293847
 ```
+
+It also creates a local admin user for testing:
+
+```text
+Email: admin@example.com
+Password: password123
+Role: admin
+```
+
+Rotate the admin password before any real deployment.
 
 ## Deployment Notes
 

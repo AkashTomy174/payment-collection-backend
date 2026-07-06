@@ -21,6 +21,16 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   }
 }
 
+export function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  const user = (req as AuthenticatedRequest).user;
+
+  if (user?.role !== "admin") {
+    return res.status(403).json({ success: false, message: "Admin access required" });
+  }
+
+  return next();
+}
+
 export function ownsAccount(req: Request, accountNumber: string) {
   return (req as AuthenticatedRequest).user.account_number === accountNumber;
 }

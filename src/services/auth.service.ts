@@ -8,10 +8,11 @@ const expiresIn = "7d";
 
 type UserRow = {
   id: number;
-  customer_id: number;
+  customer_id: number | null;
   name: string;
   email: string;
   password_hash: string;
+  role: "customer" | "admin";
   account_number: string;
 };
 
@@ -20,6 +21,7 @@ export type AuthUser = {
   name: string;
   email: string;
   account_number: string;
+  role: "customer" | "admin";
 };
 
 function publicUser(user: UserRow): AuthUser {
@@ -28,6 +30,7 @@ function publicUser(user: UserRow): AuthUser {
     name: user.name,
     email: user.email,
     account_number: user.account_number,
+    role: user.role,
   };
 }
 
@@ -52,9 +55,9 @@ export async function registerUser(input: { name: string; email: string; passwor
 
   const passwordHash = await bcrypt.hash(input.password, 10);
   const result = await db.query<UserRow>(
-    `INSERT INTO users (customer_id, name, email, password_hash)
-     VALUES ($1, $2, $3, $4)
-     RETURNING id, customer_id, name, email, password_hash, $5::text AS account_number`,
+    `INSERT INTO users (customer_id, name, email, password_hash, role)
+     VALUES ($1, $2, $3, $4, 'customer')
+     RETURNING id, customer_id, name, email, password_hash, role, $5::text AS account_number`,
     [customer.id, input.name, input.email, passwordHash, customer.account_number]
   );
   const user = publicUser(result.rows[0]);
@@ -77,9 +80,10 @@ export async function loginUser(input: { email: string; password: string }) {
             u.name,
             u.email,
             u.password_hash,
-            c.account_number
+            u.role,
+            COALESCE(c.account_number, '') AS account_number
      FROM users u
-     JOIN customers c ON c.id = u.customer_id
+     LEFT JOIN customers c ON c.id = u.customer_id
      WHERE u.email = $1`,
     [input.email]
   );
