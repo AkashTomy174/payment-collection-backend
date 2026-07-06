@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { ownsAccount } from "../middleware/auth.js";
+import { canAccessAccount, ownsAccount } from "../middleware/auth.js";
 import { createPayment, listPaymentsByAccount } from "../services/payment.service.js";
 
 export async function postPayment(req: Request, res: Response) {
@@ -13,7 +13,7 @@ export async function postPayment(req: Request, res: Response) {
 
 export async function getPaymentsByAccount(req: Request, res: Response) {
   const accountNumber = String(req.params.account_number);
-  if (!ownsAccount(req, accountNumber)) {
+  if (!canAccessAccount(req, accountNumber)) {
     return res.status(403).json({ success: false, message: "You can only view your linked loan account" });
   }
 

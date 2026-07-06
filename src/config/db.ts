@@ -130,6 +130,15 @@ function paginateRows<T>(rows: T[], params: unknown[]) {
   return rows.slice(offset, offset + limit);
 }
 
+function filterCustomersBySearch(rows: MemoryCustomer[], params: unknown[], sql: string) {
+  if (!sql.includes("account_number ILIKE $3")) {
+    return rows;
+  }
+
+  const pattern = String(params[0] ?? "").toLowerCase().replace(/%/g, "");
+  return rows.filter((customer) => customer.account_number.toLowerCase().includes(pattern));
+}
+
 function createMemoryDb(): Queryable {
   return {
     async query<T = Record<string, unknown>>(sql: string, params: unknown[] = []) {
@@ -140,7 +149,8 @@ function createMemoryDb(): Queryable {
       }
 
       if (normalized.startsWith("SELECT COUNT(*)::int AS count FROM customers")) {
-        return { rows: [{ count: customers.length }] as T[] };
+        const filtered = filterCustomersBySearch(customers, params, normalized);
+        return { rows: [{ count: filtered.length }] as T[] };
       }
 
       if (normalized.includes("FROM customers") && normalized.includes("account_number = $1")) {
@@ -149,7 +159,8 @@ function createMemoryDb(): Queryable {
       }
 
       if (normalized.includes("FROM customers")) {
-        const rows = paginateRows(sortRows(customers.map(withLoanSummary), normalized), params);
+        const filtered = filterCustomersBySearch(customers, params, normalized).map(withLoanSummary);
+        const rows = paginateRows(sortRows(filtered, normalized), params);
         return { rows: rows as T[] };
       }
 

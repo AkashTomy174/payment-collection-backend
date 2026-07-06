@@ -4,6 +4,9 @@ import type { Request } from "express";
 
 export async function listCustomers(query: Request["query"]) {
   const pagination = buildPagination(query, ["account_number", "issue_date", "emi_due", "id"]);
+  const accountNumberSearch = String(query.accountNumber ?? "").trim();
+  const searchClause = accountNumberSearch ? "WHERE c.account_number ILIKE $3" : "";
+  const searchParams = accountNumberSearch ? [`%${accountNumberSearch}%`] : [];
   const customers = await db.query(
     `SELECT c.id,
             c.account_number,
@@ -21,11 +24,17 @@ export async function listCustomers(query: Request["query"]) {
        WHERE status = 'SUCCESS'
        GROUP BY customer_id
      ) p ON p.customer_id = c.id
+     ${searchClause}
      ORDER BY c.${pagination.sort} ${pagination.order}
      LIMIT $1 OFFSET $2`,
-    [pagination.limit, pagination.offset]
+    [...searchParams, pagination.limit, pagination.offset]
   );
-  const count = await db.query<{ count: number }>("SELECT COUNT(*)::int AS count FROM customers");
+  const count = await db.query<{ count: number }>(
+    `SELECT COUNT(*)::int AS count
+     FROM customers c
+     ${searchClause}`,
+    searchParams
+  );
 
   return {
     data: customers.rows,

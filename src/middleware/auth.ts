@@ -34,3 +34,8 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
 export function ownsAccount(req: Request, accountNumber: string) {
   return (req as AuthenticatedRequest).user.account_number === accountNumber;
 }
+
+export function canAccessAccount(req: Request, accountNumber: string) {
+  const user = (req as AuthenticatedRequest).user;
+  return user.role === "admin" || user.account_number === accountNumber;
+}

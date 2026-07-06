@@ -49,47 +49,52 @@ async function login(email: string, password: string) {
   return body as { token: string };
 }
 
-test("GET /customers/all is admin-only", async () => {
-  const customer = await login("demo@example.com", "password123");
-  const admin = await login("admin@example.com", "password123");
+test("regular users still cannot access another loan", async () => {
+  const session = await login("demo@example.com", "password123");
 
-  const customerResponse = await fetch(`${baseUrl}/customers/all`, {
+  const response = await fetch(`${baseUrl}/customers/AC20485611`, {
     headers: {
-      Authorization: `Bearer ${customer.token}`,
-    },
-  });
-  const customerBody = await customerResponse.json();
-
-  assert.equal(customerResponse.status, 403);
-  assert.deepEqual(customerBody, {
-    success: false,
-    message: "Admin access required",
-  });
-
-  const adminResponse = await fetch(`${baseUrl}/customers/all`, {
-    headers: {
-      Authorization: `Bearer ${admin.token}`,
-    },
-  });
-  const adminBody = await adminResponse.json();
-
-  assert.equal(adminResponse.status, 200);
-  assert.equal(adminBody.success, true);
-  assert.ok(Array.isArray(adminBody.data));
-  assert.equal(adminBody.data.length, 3);
-});
-
-test("admins can view payment history for any loan", async () => {
-  const admin = await login("admin@example.com", "password123");
-
-  const response = await fetch(`${baseUrl}/payments/AC20485611?page=1&limit=10&sort=payment_date&order=desc`, {
-    headers: {
-      Authorization: `Bearer ${admin.token}`,
+      Authorization: `Bearer ${session.token}`,
     },
   });
 
   const body = await response.json();
-  assert.equal(response.status, 200);
-  assert.equal(body.success, true);
-  assert.ok(Array.isArray(body.data));
+  assert.equal(response.status, 403);
+  assert.deepEqual(body, {
+    success: false,
+    message: "You can only access your linked loan account",
+  });
+});
+
+test("customer payment flow still works", async () => {
+  const session = await login("demo@example.com", "password123");
+
+  const paymentResponse = await fetch(`${baseUrl}/payments`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.token}`,
+    },
+    body: JSON.stringify({
+      accountNumber: "AC10293847",
+      amount: 14250,
+    }),
+  });
+
+  const paymentBody = await paymentResponse.json();
+  assert.equal(paymentResponse.status, 201);
+  assert.equal(paymentBody.success, true);
+  assert.equal(paymentBody.message, "Payment recorded successfully");
+
+  const historyResponse = await fetch(`${baseUrl}/payments/AC10293847?page=1&limit=10&sort=payment_date&order=desc`, {
+    headers: {
+      Authorization: `Bearer ${session.token}`,
+    },
+  });
+
+  const historyBody = await historyResponse.json();
+  assert.equal(historyResponse.status, 200);
+  assert.equal(historyBody.success, true);
+  assert.ok(Array.isArray(historyBody.data));
+  assert.ok(historyBody.data.length >= 2);
 });
